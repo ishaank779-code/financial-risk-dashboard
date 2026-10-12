@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quilo | Financial Risk & Scenario Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-radar@4.4.1/dist/chartjs-chart-radar.min.js"></script>
+</head>
+<body>
+  <!-- Top Navigation -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <span class="logo-mark">Q</span>
+        <span class="logo-text">Quilo</span>
+      </div>
+      <nav class="main-nav">
+        <a href="#" class="nav-item active" data-view="dashboard">Dashboard</a>
+        <a href="#" class="nav-item" data-view="stress">Stress Lab</a>
+        <a href="#" class="nav-item" data-view="history">Industry History</a>
+        <a href="#" class="nav-item" data-view="peers">Peer Analysis</a>
+        <a href="#" class="nav-item" data-view="learning">Learning</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="user-info">
+        <span class="user-name" id="userName">Boris Fuzayloff</span>
+        <span class="user-org">IDAHO CENTRAL</span>
+      </div>
+      <button class="btn-icon" id="btnRefresh" title="Refresh data">↻</button>
+    </div>
+  </header>
+
+  <!-- Observation Banner -->
+  <div class="observation-banner" id="obsBanner">
+    <strong>OBSERVATIONS: PERFORMANCE v. PEER GROUP:</strong>
+    <span id="obsText">Loading insights…</span>
+    <button class="btn-link" id="btnMoreObs">more</button>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="view active">
+      <!-- Stress Controls -->
+      <div class="panel controls-panel">
+        <div class="control-group">
+          <label>Stress Scenario</label>
+          <div class="slider-row">
+            <span class="slider-label">Horizon, months</span>
+            <input type="range" id="sliderHorizon" min="3" max="36" value="18" step="3" />
+            <span class="slider-value" id="valHorizon">18</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Rate Change, bp</span>
+            <input type="range" id="sliderRate" min="0" max="1000" value="500" step="25" />
+            <span class="slider-value" id="valRate">500</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Net Charge Off Rate, %</span>
+            <input type="range" id="sliderNCO" min="0.10" max="3.00" value="0.52" step="0.01" />
+            <span class="slider-value" id="valNCO">0.52</span>
+          </div>
+        </div>
+        <div class="control-actions">
+          <button class="btn primary" id="btnRunStress">Run Stress</button>
+          <button class="btn secondary" id="btnSaveScenario">Save Scenario</button>
+        </div>
+      </div>
+
+      <!-- NII Projection -->
+      <div class="panel chart-panel">
+        <div class="panel-header">
+          <h3>Net Interest Income – Projection</h3>
+          <div class="nii-summary">
+            <span>Q4 2023 → <strong id="niiStart">$242.6M</strong></span>
+            <span class="arrow">→</span>
+            <span id="niiEndLabel">Q2 2025 → <strong id="niiEnd">$266.3M</strong></span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="niiChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Radar + ROA cards -->
+      <div class="metrics-row">
+        <div class="panel radar-panel">
+          <div class="panel-header">
+            <h3>RA-YOEA</h3>
+            <span class="trend better" id="raTrend">Trending better ▲ 0.96%</span>
+          </div>
+          <div class="ra-values">
+            <div class="ra-item">
+              <span class="ra-label">Q4 2023</span>
+              <span class="ra-val" id="raBase">4.09%</span>
+            </div>
+            <div class="ra-item stress">
+              <span class="ra-label">Stress Scenario</span>
+              <span class="ra-val" id="raStress">5.05%</span>
+            </div>
+          </div>
+          <div class="chart-container radar-chart">
+            <canvas id="radarChart"></canvas>
+          </div>
+          <div class="legend">
+            <span class="leg base"><i></i> Q4 2023</span>
+            <span class="leg stress"><i></i> Stress Scenario</span>
+          </div>
+        </div>
+
+        <div class="panel roa-panel">
+          <div class="panel-header">
+            <h3>ROA</h3>
+            <span class="trend better" id="roaTrend">Trending better ▲ 0.02%</span>
+          </div>
+          <div class="roa-values">
+            <div class="roa-item">
+              <span class="roa-label">Q4 2023</span>
+              <span class="roa-val" id="roaBase">0.87%</span>
+            </div>
+            <div class="roa-item stress">
+              <span class="roa-label">Stress Scenario</span>
+              <span class="roa-val" id="roaStress">0.89%</span>
+            </div>
+          </div>
+          <div class="stress-params-display" id="stressParamsDisplay">
+            Rate Change: <strong>500 bp</strong> · Net Charge Off: <strong>0.52%</strong>
+          </div>
+          <div class="kpi-grid" id="kpiGrid">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STRESS LAB VIEW -->
+    <section id="view-stress" class="view">
+      <div class="panel">
+        <h2>Stress Scenario Lab</h2>
+        <p class="subtitle">Adjust parameters and instantly see impact on Net Interest Income and key risk ratios.</p>
+        <div class="lab-grid">
+          <div class="lab-controls">
+            <div class="form-group">
+              <label>Horizon (months)</label>
+              <input type="number" id="labHorizon" min="3" max="36" value="18" />
+            </div>
+            <div class="form-group">
+              <label>Rate Change (basis points)</label>
+              <input type="number" id="labRate" min="0" max="1000" value="500" step="25" />
+            </div>
+            <div class="form-group">
+              <label>Net Charge-Off Rate (%)</label>
+              <input type="number" id="labNCO" min="0.1" max="5" value="0.52" step="0.01" />
+            </div>
+            <button class="btn primary" id="btnLabRun">Simulate</button>
+          </div>
+          <div class="lab-result" id="labResult">
+            <p>Run a simulation to see results.</p>
+          </div>
+        </div>
+        <div class="saved-scenarios">
+          <h3>Saved Scenarios</h3>
+          <ul id="scenarioList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- INDUSTRY HISTORY VIEW -->
+    <section id="view-history" class="view">
+      <div class="panel chart-panel full">
+        <div class="panel-header">
+          <h3>Industry History – Charge-Off Rate vs New Consumer Loan Origination</h3>
+        </div>
+        <div class="chart-container tall">
+          <canvas id="historyChart"></canvas>
+        </div>
+        <p class="chart-note">Red: Charge-Off Rate on All Loans, All Commercial Banks (%) · Green: New Consumer Loan Origination (Billions of U.S. Dollars)</p>
+      </div>
+    </section>
+
+    <!-- PEER ANALYSIS VIEW -->
+    <section id="view-peers" class="view">
+      <div class="panel">
+        <h2>Peer Group Comparison</h2>
+        <p class="subtitle">Idaho Central Credit Union vs Mid-size Credit Unions peer group</p>
+        <div class="peer-table-wrap">
+          <table class="data-table" id="peerTable">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Institution</th>
+                <th>Peer Average</th>
+                <th>Difference</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="insight-box" id="peerInsight"></div>
+      </div>
+    </section>
+
+    <!-- LEARNING VIEW (Uncodemy links) -->
+    <section id="view-learning" class="view">
+      <div class="panel learning-panel">
+        <h2>Deepen Your Investment Banking & Risk Skills</h2>
+        <p class="subtitle">
+          Understanding stress testing, ALCO, ROA, NIM and credit risk is core to investment banking and risk management roles.
+          Explore structured training programs that cover these topics in depth.
+        </p>
+        <div class="course-cards">
+          <a class="course-card" href="https://uncodemy.com/course/investment-banking-training-course-in-noida" target="_blank" rel="noopener">
+            <div class="course-badge">Noida</div>
+            <h3>Investment Banking Training Course – Noida</h3>
+            <p>Comprehensive program covering financial modeling, valuation, risk analysis, ALM and stress testing used by banks and credit unions.</p>
+            <span class="course-link">View Course →</span>
+          </a>
+          <a class="course-card" href="https://uncodemy.com/course/investment-banking-training-course-in-delhi" target="_blank" rel="noopener">
+            <div class="course-badge">Delhi</div>
+            <h3>Investment Banking Training Course – Delhi</h3>
+            <p>Hands-on curriculum designed for analysts and risk professionals who work with balance-sheet stress scenarios and peer benchmarking.</p>
+            <span class="course-link">View Course →</span>
+          </a>
+        </div>
+        <div class="learning-tips">
+          <h4>How this dashboard maps to real skills</h4>
+          <ul>
+            <li><strong>Stress Scenario controls</strong> → Interest rate risk & credit risk modelling</li>
+            <li><strong>Net Interest Income projection</strong> → ALM / ALCO forecasting</li>
+            <li><strong>Radar metrics (ROA, NIM, COF, YOEA…)</strong> → Key performance indicators used in investment banking and bank analysis</li>
+            <li><strong>Peer comparison</strong> → Relative valuation & competitive positioning</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-left">
+      © 2024 Quilo Technology · Financial Risk Dashboard (Demo)
+    </div>
+    <div class="footer-right">
+      <a href="https://uncodemy.com/course/investment-banking-training-course-in-noida" target="_blank">IB Course – Noida</a>
+      <span>·</span>
+      <a href="https://uncodemy.com/course/investment-banking-training-course-in-delhi" target="_blank">IB Course – Delhi</a>
+    </div>
+  </footer>
+
+  <!-- Modal for full observation -->
+  <div class="modal" id="obsModal">
+    <div class="modal-content">
+      <button class="modal-close" id="closeModal">×</button>
+      <h3 id="modalTitle">Observations</h3>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
